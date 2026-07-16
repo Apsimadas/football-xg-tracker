@@ -21,6 +21,7 @@ expected, not a bug.
 """
 
 import argparse
+import daywindow
 import gzip
 import json
 import odds
@@ -198,9 +199,11 @@ def classify_ou(over_pct):
 
 
 def build_matches_for_date(target_date, leagues=LEAGUES):
-    """target_date: a date (local Europe/Athens calendar day) to report on."""
+    """target_date: the "coupon day" to report on — see daywindow.py for
+    the exact 08:00-to-08:00 window this covers."""
     all_matches = []
     warnings = []
+    window_start, window_end = daywindow.get_report_window(target_date)
 
     for slug, display_name in leagues.items():
         season = season_for_date(target_date)
@@ -219,7 +222,7 @@ def build_matches_for_date(target_date, leagues=LEAGUES):
             except (KeyError, ValueError):
                 continue
             fx_dt_local = fx_dt_utc.astimezone(LOCAL_TZ)
-            if fx_dt_local.date() == target_date:
+            if window_start <= fx_dt_local < window_end:
                 todays_fixtures.append((fx, fx_dt_utc, fx_dt_local))
 
         if not todays_fixtures:

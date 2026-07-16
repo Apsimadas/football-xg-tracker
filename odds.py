@@ -23,6 +23,8 @@ import urllib.request
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import daywindow
+
 UTC = ZoneInfo("UTC")
 LOCAL_TZ = ZoneInfo("Europe/Athens")
 
@@ -217,6 +219,7 @@ def find_xg_agreement(home, away, xg_matches):
 
 def build_odds_matches_for_date(target_date, xg_matches, api_key):
     warnings = []
+    window_start, window_end = daywindow.get_report_window(target_date)
     if not api_key:
         warnings.append("Δεν έχει οριστεί ODDS_API_KEY — η ενότητα φαβορί αγοράς παραλείπεται.")
         return [], warnings
@@ -249,7 +252,7 @@ def build_odds_matches_for_date(target_date, xg_matches, api_key):
             except (KeyError, ValueError):
                 continue
             commence_local = commence_utc.astimezone(LOCAL_TZ)
-            if commence_local.date() != target_date:
+            if not (window_start <= commence_local < window_end):
                 continue
 
             probs = implied_probabilities(ev)

@@ -244,7 +244,7 @@
   function formatDateLabel(iso) {
     const [y, m, d] = iso.split("-").map(Number);
     const dt = new Date(y, m - 1, d);
-    return `${DOW[dt.getDay()]}, ${d} ${MONTHS[m - 1]} ${y}`;
+    return `${DOW[dt.getDay()]}, ${d} ${MONTHS[m - 1]} ${y} · πρόγραμμα 08:00–07:59 επόμενο πρωί`;
   }
 
   function formatUpdated(iso) {
