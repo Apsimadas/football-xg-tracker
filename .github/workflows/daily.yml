@@ -2,9 +2,12 @@ name: Daily xG Update
 
 on:
   schedule:
-    # 05:00 UTC ≈ 08:00 Athens (EEST, summer). Drifts to 07:00 Athens once
-    # clocks fall back to EET in late October — adjust here if that matters.
-    - cron: "0 5 * * *"
+    # GitHub Actions cron is UTC-only and has no timezone support, so we
+    # schedule both possible UTC times for "08:00 Athens" and let the gate
+    # job below work out which one is real for today — this keeps the run
+    # pinned to 08:00 Athens year-round instead of drifting an hour at DST.
+    - cron: "0 5 * * *"  # 08:00 Athens during EEST (UTC+3, summer)
+    - cron: "0 6 * * *"  # 08:00 Athens during EET (UTC+2, winter)
   workflow_dispatch: {}
 
 permissions:
@@ -17,7 +20,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "Manual run — always proceed."
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          HOUR=$(TZ="Europe/Athens" date +%H)
+          echo "Current Athens local hour: $HOUR"
+          if [ "$HOUR" = "08" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Not the active Athens 08:00 slot today — skipping (this is expected, the other cron entry will fire instead)."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-and-deploy:
+    needs: gate
+    if: needs.gate.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
