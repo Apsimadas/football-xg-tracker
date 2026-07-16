@@ -158,6 +158,33 @@
   .badge-ou { background: var(--blue-soft); color: var(--blue-dark); }
   .badge-sample { background: #F5EEDC; color: #A98A4A; }
 
+  .section-divider {
+    text-align: center;
+    padding: 6px 8px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .section-title-lg { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .section-sub { margin: 0; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+
+  .sport-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--blue-dark);
+    margin: 2px 6px -4px;
+  }
+
+  .odds-card { display: flex; flex-direction: column; gap: 10px; }
+  .odds-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .odds-league { font-size: 11.5px; color: var(--ink-soft); }
+  .odds-teams { font-size: 15px; font-weight: 700; }
+  .odds-fav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .odds-fav { font-size: 13.5px; color: var(--ink); }
+  .odds-fav strong { color: var(--blue); font-variant-numeric: tabular-nums; }
+  .badge-agree { background: var(--green-soft); color: var(--green); }
+  .badge-disagree { background: #FBEAEA; color: #C5453A; }
+
   .empty-state {
     text-align: center;
     color: var(--ink-soft);
@@ -194,8 +221,16 @@
 
     <div id="matchesRoot"></div>
 
+    <div id="oddsSection" style="display:none;">
+      <div class="section-divider">
+        <span class="section-title-lg">🌍 Φαβορί Αγοράς (Odds)</span>
+        <p class="section-sub">Από πραγματικά bookmaker odds, ανεξάρτητα από το μοντέλο xG — καλύπτει όλο το ημερήσιο κουπόνι σε ποδόσφαιρο, μπάσκετ και τένις.</p>
+      </div>
+      <div id="oddsRoot"></div>
+    </div>
+
     <footer>
-      Οι εκτιμήσεις βασίζονται σε στατιστική ανάλυση δεικτών Expected Goals (xG) από δημόσια δεδομένα.
+      Οι εκτιμήσεις βασίζονται σε στατιστική ανάλυση δεικτών Expected Goals (xG) και σε πραγματικά bookmaker odds, από δημόσια δεδομένα.
       Δεν αποτελούν εγγύηση αποτελέσματος — είναι απλώς μία στατιστική άποψη.
     </footer>
   </div>
@@ -223,10 +258,11 @@
   document.getElementById("dateLabel").textContent = formatDateLabel(DATA.targetDate);
   document.getElementById("updatedLabel").textContent = formatUpdated(DATA.generatedAt);
 
-  if (DATA.warnings && DATA.warnings.length) {
+  const allWarnings = [...(DATA.warnings || []), ...(DATA.oddsWarnings || [])];
+  if (allWarnings.length) {
     document.getElementById("warningsCard").style.display = "block";
     const list = document.getElementById("warningsList");
-    DATA.warnings.forEach((w) => {
+    allWarnings.forEach((w) => {
       const div = document.createElement("div");
       div.textContent = "ℹ️ " + w;
       list.appendChild(div);
@@ -320,6 +356,54 @@
       lbl.textContent = label;
       root.appendChild(lbl);
       groups[key].forEach((m) => root.appendChild(matchCard(m)));
+    });
+  }
+
+  function oddsTierBadge(tier, favTeam, favPct) {
+    if (tier === "clear") return `<span class="badge badge-clear">🔵 ${favTeam} (${favPct}%)</span>`;
+    if (tier === "lean") return `<span class="badge badge-lean">🟡 ${favTeam} (${favPct}%)</span>`;
+    return `<span class="badge badge-even">⚪ Ισορροπημένο</span>`;
+  }
+
+  function agreementBadge(agreement) {
+    if (agreement === true) return `<span class="badge badge-agree">✅ Συμφωνεί με το xG μοντέλο</span>`;
+    if (agreement === false) return `<span class="badge badge-disagree">⚠ Διαφωνεί με το xG μοντέλο</span>`;
+    return "";
+  }
+
+  function oddsCard(m) {
+    const div = document.createElement("div");
+    div.className = "card odds-card";
+    div.innerHTML = `
+      <div class="odds-top">
+        <span class="odds-league">${m.league}</span>
+        <span class="kickoff">${m.kickoff_local}</span>
+      </div>
+      <div class="odds-teams">${m.home_team} — ${m.away_team}</div>
+      <div class="odds-fav-row">
+        ${oddsTierBadge(m.favorite_tier, m.favorite_team, m.favorite_pct)}
+        ${agreementBadge(m.xg_agreement)}
+      </div>
+    `;
+    return div;
+  }
+
+  const oddsMatches = DATA.oddsMatches || [];
+  if (oddsMatches.length) {
+    document.getElementById("oddsSection").style.display = "block";
+    const oddsRoot = document.getElementById("oddsRoot");
+    const bySport = {};
+    oddsMatches.forEach((m) => {
+      (bySport[m.sport] = bySport[m.sport] || []).push(m);
+    });
+    const sportOrder = ["Ποδόσφαιρο", "Μπάσκετ", "Τένις"];
+    sportOrder.forEach((sport) => {
+      if (!bySport[sport] || !bySport[sport].length) return;
+      const lbl = document.createElement("div");
+      lbl.className = "sport-label";
+      lbl.textContent = sport;
+      oddsRoot.appendChild(lbl);
+      bySport[sport].forEach((m) => oddsRoot.appendChild(oddsCard(m)));
     });
   }
 </script>

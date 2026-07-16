@@ -23,6 +23,7 @@ expected, not a bug.
 import argparse
 import gzip
 import json
+import odds
 import math
 import os
 import urllib.error
@@ -283,7 +284,8 @@ def build_matches_for_date(target_date, leagues=LEAGUES):
     return all_matches, warnings
 
 
-def render_html(matches, warnings, target_date, generated_at_local, template_path, output_path):
+def render_html(matches, warnings, odds_matches, odds_warnings, target_date, generated_at_local,
+                 template_path, output_path):
     with open(template_path, "r", encoding="utf-8") as f:
         template = f.read()
 
@@ -292,6 +294,8 @@ def render_html(matches, warnings, target_date, generated_at_local, template_pat
         "generatedAt": generated_at_local.isoformat(),
         "matches": matches,
         "warnings": warnings,
+        "oddsMatches": odds_matches,
+        "oddsWarnings": odds_warnings,
     }
     html = template.replace("__MATCH_DATA_JSON__", json.dumps(payload, ensure_ascii=False))
 
@@ -313,15 +317,26 @@ def main():
     print(f"Building report for {target_date.isoformat()}...")
     matches, warnings = build_matches_for_date(target_date)
 
+    print("Fetching market odds (football/basketball/tennis)...")
+    odds_matches, odds_warnings = odds.build_odds_matches_for_date(
+        target_date, matches, os.environ.get("ODDS_API_KEY")
+    )
+    print(f"Found {len(odds_matches)} odds-covered matches today.")
+
     here = os.path.dirname(os.path.abspath(__file__))
     matches_json_path = os.path.join(here, "matches.json")
     with open(matches_json_path, "w", encoding="utf-8") as f:
-        json.dump({"targetDate": target_date.isoformat(), "matches": matches, "warnings": warnings}, f,
-                   ensure_ascii=False, indent=2)
+        json.dump({
+            "targetDate": target_date.isoformat(),
+            "matches": matches,
+            "warnings": warnings,
+            "oddsMatches": odds_matches,
+            "oddsWarnings": odds_warnings,
+        }, f, ensure_ascii=False, indent=2)
     print(f"Wrote {matches_json_path} ({len(matches)} matches)")
 
     render_html(
-        matches, warnings, target_date, datetime.now(LOCAL_TZ),
+        matches, warnings, odds_matches, odds_warnings, target_date, datetime.now(LOCAL_TZ),
         template_path=os.path.join(here, "dashboard_template.html"),
         output_path=os.path.join(here, "dashboard.html"),
     )

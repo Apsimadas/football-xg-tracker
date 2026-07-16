@@ -30,6 +30,8 @@ jobs:
           python-version: "3.12"
 
       - name: Run xG predictor
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python fetch_and_predict.py
 
       - name: Prepare Pages content
