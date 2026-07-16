@@ -1,0 +1,46 @@
+name: Daily xG Update
+
+on:
+  schedule:
+    # 05:00 UTC ≈ 08:00 Athens (EEST, summer). Drifts to 07:00 Athens once
+    # clocks fall back to EET in late October — adjust here if that matters.
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run xG predictor
+        run: python fetch_and_predict.py
+
+      - name: Prepare Pages content
+        run: |
+          mkdir -p _site
+          cp dashboard.html _site/index.html
+          cp matches.json _site/matches.json
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

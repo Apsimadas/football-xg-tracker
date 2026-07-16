@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Football xG Tracker</title>
+<style>
+  :root{
+    --cream: #FBF6EA;
+    --cream-card: #FFFDF7;
+    --blue: #2F6FED;
+    --blue-dark: #2456C2;
+    --blue-soft: #EAF1FF;
+    --blue-track: #E3ECFC;
+    --ink: #26324A;
+    --ink-soft: #7C8AA5;
+    --line: #EFE7D4;
+    --green: #1FAA6E;
+    --green-soft: #E7F7EF;
+    --amber: #C98A1D;
+    --amber-soft: #FBF0DC;
+    --shadow: 0 12px 30px rgba(47, 111, 237, 0.08);
+    --radius-card: 24px;
+    --radius-el: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--cream);
+    background-image:
+      radial-gradient(circle at 10% 0%, #FFFDF8 0%, transparent 45%),
+      radial-gradient(circle at 90% 100%, #F5EEDC 0%, transparent 40%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    padding: 44px 16px 70px;
+  }
+
+  .wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+  header { text-align: center; margin-bottom: 4px; }
+  header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 6px; }
+  header p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+  header .updated { margin-top: 6px; font-size: 12px; color: var(--ink-soft); }
+
+  .section-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    margin: 4px 4px -6px;
+  }
+
+  .card {
+    background: var(--cream-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow);
+    padding: 20px 22px;
+    border: 1px solid var(--line);
+  }
+
+  .notice {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .warning-list { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-soft); }
+
+  .match-card { display: flex; flex-direction: column; gap: 14px; }
+
+  .match-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .league-badge {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--blue);
+    background: var(--blue-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .kickoff { font-size: 12.5px; color: var(--ink-soft); }
+
+  .teams-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .team-name { font-size: 16.5px; font-weight: 700; flex: 1; }
+  .team-name.away { text-align: right; }
+  .score-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 64px;
+  }
+  .score-box .score { font-size: 22px; font-weight: 800; color: var(--blue); letter-spacing: 0.02em; }
+  .score-box .score-label { font-size: 10.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; }
+  .actual-score { font-size: 11.5px; color: var(--green); font-weight: 600; margin-top: 2px; }
+
+  .prob-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--blue-track);
+  }
+  .prob-bar span { height: 100%; }
+  .prob-bar .home { background: var(--blue); }
+  .prob-bar .draw { background: #C9D5EE; }
+  .prob-bar .away { background: #5B93FF; }
+
+  .prob-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .prob-labels strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .score-box .score { font-variant-numeric: tabular-nums; }
+
+  .badges-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  .badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .badge-clear { background: var(--green-soft); color: var(--green); }
+  .badge-lean { background: var(--amber-soft); color: var(--amber); }
+  .badge-even { background: var(--blue-track); color: var(--ink-soft); }
+  .badge-ou { background: var(--blue-soft); color: var(--blue-dark); }
+  .badge-sample { background: #F5EEDC; color: #A98A4A; }
+
+  .empty-state {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 14px;
+    padding: 10px 0;
+    line-height: 1.6;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    padding: 8px 12px 0;
+  }
+
+  @media (max-width: 420px) {
+    .card { padding: 18px 16px; }
+    .team-name { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>⚽ Football xG Tracker</h1>
+      <p id="dateLabel">—</p>
+      <div class="updated" id="updatedLabel"></div>
+    </header>
+
+    <div id="warningsCard" class="card" style="display:none;">
+      <div class="warning-list" id="warningsList"></div>
+    </div>
+
+    <div id="matchesRoot"></div>
+
+    <footer>
+      Οι εκτιμήσεις βασίζονται σε στατιστική ανάλυση δεικτών Expected Goals (xG) από δημόσια δεδομένα.
+      Δεν αποτελούν εγγύηση αποτελέσματος — είναι απλώς μία στατιστική άποψη.
+    </footer>
+  </div>
+
+<script>
+  const DATA = __MATCH_DATA_JSON__;
+
+  const DOW = ["Κυριακή","Δευτέρα","Τρίτη","Τετάρτη","Πέμπτη","Παρασκευή","Σάββατο"];
+  const MONTHS = ["Ιανουαρίου","Φεβρουαρίου","Μαρτίου","Απριλίου","Μαΐου","Ιουνίου","Ιουλίου","Αυγούστου","Σεπτεμβρίου","Οκτωβρίου","Νοεμβρίου","Δεκεμβρίου"];
+
+  function formatDateLabel(iso) {
+    const [y, m, d] = iso.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    return `${DOW[dt.getDay()]}, ${d} ${MONTHS[m - 1]} ${y}`;
+  }
+
+  function formatUpdated(iso) {
+    const dt = new Date(iso);
+    if (isNaN(dt)) return "";
+    const hh = String(dt.getHours()).padStart(2, "0");
+    const mm = String(dt.getMinutes()).padStart(2, "0");
+    return `Ενημερώθηκε στις ${hh}:${mm}`;
+  }
+
+  document.getElementById("dateLabel").textContent = formatDateLabel(DATA.targetDate);
+  document.getElementById("updatedLabel").textContent = formatUpdated(DATA.generatedAt);
+
+  if (DATA.warnings && DATA.warnings.length) {
+    document.getElementById("warningsCard").style.display = "block";
+    const list = document.getElementById("warningsList");
+    DATA.warnings.forEach((w) => {
+      const div = document.createElement("div");
+      div.textContent = "ℹ️ " + w;
+      list.appendChild(div);
+    });
+  }
+
+  const root = document.getElementById("matchesRoot");
+
+  function tierBadge(tier, favTeam, favPct) {
+    if (tier === "clear") return `<span class="badge badge-clear">🔵 Ξεκάθαρο φαβορί: ${favTeam} (${favPct}%)</span>`;
+    if (tier === "lean") return `<span class="badge badge-lean">🟡 Ελαφρύ φαβορί: ${favTeam} (${favPct}%)</span>`;
+    return `<span class="badge badge-even">⚪ Ισορροπημένο ματς</span>`;
+  }
+
+  function ouBadge(lean, pct) {
+    const label = lean === "Toss-up" ? "Toss-up O/U 2.5" : `${lean} 2.5 (${pct}%)`;
+    return `<span class="badge badge-ou">🎯 ${label}</span>`;
+  }
+
+  function matchCard(m) {
+    const div = document.createElement("div");
+    div.className = "card match-card";
+    const actualLine = m.actual_score ? `<div class="actual-score">Τελικό: ${m.actual_score}</div>` : "";
+    const sampleBadge = m.low_sample ? `<span class="badge badge-sample">⚠ Μικρό δείγμα δεδομένων</span>` : "";
+    div.innerHTML = `
+      <div class="match-top">
+        <span class="league-badge">${m.league}</span>
+        <span class="kickoff">${m.kickoff_local}</span>
+      </div>
+      <div class="teams-row">
+        <div class="team-name home">${m.home_team}</div>
+        <div class="score-box">
+          <div class="score">${m.predicted_score}</div>
+          <div class="score-label">Πρόβλεψη</div>
+          ${actualLine}
+        </div>
+        <div class="team-name away">${m.away_team}</div>
+      </div>
+      <div>
+        <div class="prob-bar">
+          <span class="home" style="width:${m.home_win_pct}%"></span>
+          <span class="draw" style="width:${m.draw_pct}%"></span>
+          <span class="away" style="width:${m.away_win_pct}%"></span>
+        </div>
+        <div class="prob-labels">
+          <span><strong>${m.home_win_pct}%</strong> Νίκη 1</span>
+          <span><strong>${m.draw_pct}%</strong> Χ</span>
+          <span><strong>${m.away_win_pct}%</strong> Νίκη 2</span>
+        </div>
+      </div>
+      <div class="badges-row">
+        ${tierBadge(m.favorite_tier, m.favorite_team, m.favorite_pct)}
+        ${ouBadge(m.ou_lean, m.ou_pct)}
+        ${sampleBadge}
+      </div>
+    `;
+    return div;
+  }
+
+  if (!DATA.matches || DATA.matches.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "card empty-state";
+    empty.textContent = "Δεν υπάρχουν προγραμματισμένοι αγώνες σήμερα στις λίγκες που παρακολουθούμε.";
+    root.appendChild(empty);
+  } else {
+    const groups = { clear: [], lean: [], even: [] };
+    DATA.matches.forEach((m) => groups[m.favorite_tier].push(m));
+
+    const sections = [
+      ["clear", "🔵 Ξεκάθαρα φαβορί"],
+      ["lean", "🟡 Ελαφριά φαβορί"],
+      ["even", "⚪ Ισορροπημένοι αγώνες"],
+    ];
+
+    sections.forEach(([key, label]) => {
+      if (!groups[key].length) return;
+      const lbl = document.createElement("div");
+      lbl.className = "section-label";
+      lbl.textContent = label;
+      root.appendChild(lbl);
+      groups[key].forEach((m) => root.appendChild(matchCard(m)));
+    });
+  }
+</script>
+</body>
+</html>
