@@ -267,6 +267,14 @@ def build_matches_for_date(target_date, leagues=LEAGUES):
                 "ou_pct": round(ou_pct * 100, 1),
                 "low_sample": low_sample,
                 "actual_score": actual_score,
+                # Raw season-to-date xG averages behind the prediction above,
+                # in each team's actual venue context (home team @ home, away team @ away).
+                "home_xg_for": round(home_stats["home_attack"], 2),
+                "home_xg_against": round(home_stats["home_defense"], 2),
+                "home_sample": home_stats["home_matches"],
+                "away_xg_for": round(away_stats["away_attack"], 2),
+                "away_xg_against": round(away_stats["away_defense"], 2),
+                "away_sample": away_stats["away_matches"],
             })
 
     # Clear favorites first, then by kickoff time.
