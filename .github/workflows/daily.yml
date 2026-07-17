@@ -9,6 +9,8 @@ on:
     - cron: "0 5 * * *"  # 08:00 Athens during EEST (UTC+3, summer)
     - cron: "0 6 * * *"  # 08:00 Athens during EET (UTC+2, winter)
   workflow_dispatch: {}
+  push:
+    branches: [main]
 
 permissions:
   contents: read
