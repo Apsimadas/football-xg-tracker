@@ -32,12 +32,20 @@ jobs:
             echo "proceed=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          HOUR=$(TZ="Europe/Athens" date +%H)
-          echo "Current Athens local hour: $HOUR"
-          if [ "$HOUR" = "08" ]; then
+          # Key off WHICH cron entry triggered this run, not what time it
+          # actually executed — GitHub Actions schedules routinely fire
+          # 30-120+ minutes late on free-tier repos, so checking the wall
+          # clock at execution time is unreliable (it caused both of
+          # today's runs to be wrongly skipped). github.event.schedule is
+          # exact regardless of delay.
+          TZ_NAME=$(TZ="Europe/Athens" date +%Z)  # EEST (summer) or EET (winter)
+          SCHEDULE="${{ github.event.schedule }}"
+          echo "Triggering cron: $SCHEDULE | Current Athens zone: $TZ_NAME"
+          if { [ "$TZ_NAME" = "EEST" ] && [ "$SCHEDULE" = "0 5 * * *" ]; } || \
+             { [ "$TZ_NAME" = "EET" ] && [ "$SCHEDULE" = "0 6 * * *" ]; }; then
             echo "proceed=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Not the active Athens 08:00 slot today — skipping (this is expected, the other cron entry will fire instead)."
+            echo "Wrong cron slot for the current Athens DST state — skipping (the other cron entry is the active one today)."
             echo "proceed=false" >> "$GITHUB_OUTPUT"
           fi
 
